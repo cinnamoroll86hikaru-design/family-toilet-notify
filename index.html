@@ -3,113 +3,213 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eaf2ff">
   <title>家族のトイレ通知</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #eaf2ff;
-      color: #29364a;
+      padding: 24px;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 24px;
+      background: #eaf2ff;
+      color: #29364a;
+      font-family: sans-serif;
     }
-
     main {
       width: 100%;
       max-width: 400px;
+      padding: 30px 24px;
       background: white;
       border-radius: 28px;
-      padding: 32px 24px;
       text-align: center;
       box-shadow: 0 8px 30px #233b6020;
     }
-
-    .icon {
-      font-size: 64px;
-      margin-bottom: 12px;
-    }
-
-    h1 {
-      font-size: 25px;
-      margin: 8px 0;
-    }
-
-    .description {
-      color: #778398;
-      font-size: 14px;
-      line-height: 1.8;
-      margin-bottom: 30px;
-    }
-
+    .icon { font-size: 60px; }
+    h1 { font-size: 24px; }
+    p { color: #778398; line-height: 1.8; }
     button {
       width: 100%;
-      border: none;
-      border-radius: 18px;
-      padding: 20px;
+      padding: 19px;
+      border: 0;
+      border-radius: 16px;
       background: #5489dc;
       color: white;
-      font-size: 19px;
+      font-size: 18px;
       font-weight: bold;
-      cursor: pointer;
     }
-
-    button:active {
-      opacity: 0.8;
-    }
-
-    #message {
-      margin-top: 24px;
+    button:disabled { opacity: .45; }
+    #status, #history {
+      margin-top: 20px;
       padding: 14px;
       border-radius: 14px;
       background: #f1f5fb;
-      color: #53647d;
       font-size: 14px;
       line-height: 1.7;
+      overflow-wrap: anywhere;
     }
-
-    footer {
-      margin-top: 28px;
-      color: #9aa5b5;
+    #uid {
       font-size: 11px;
+      overflow-wrap: anywhere;
+      color: #778398;
+    }
+    .event {
+      padding: 10px;
+      margin-top: 8px;
+      background: white;
+      border-radius: 10px;
+      text-align: left;
     }
   </style>
 </head>
 <body>
-  <main>
-    <div class="icon">🚽</div>
-    <h1>家族のトイレ通知</h1>
-    <p class="description">
-      トイレを使いたいときに<br>
-      ボタンを押して家族にお知らせ！
-    </p>
+<main>
+  <div class="icon">🚽</div>
+  <h1>家族のトイレ通知</h1>
+  <p>トイレを使いたいときに<br>ボタンを押して家族にお知らせ！</p>
 
-    <button onclick="notifyFamily()">
-      トイレを使いたい！
-    </button>
+  <button id="notify" disabled>トイレを使いたい！</button>
+  <div id="status">ログイン準備中...</div>
+  <div id="history">通知履歴はまだありません。</div>
+  <p id="uid"></p>
+</main>
 
-    <div id="message">
-      通知機能はまだ準備中です。
-    </div>
+<script type="module">
+  import { initializeApp } from
+    "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 
-    <footer>
-      FAMILY TOILET NOTIFICATION
-    </footer>
-  </main>
+  import {
+    getAuth,
+    signInAnonymously,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
-  <script>
-    function notifyFamily() {
-      document.getElementById("message").textContent =
-        "通知機能はまだ接続されていません。もう少し待ってね！";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    collection,
+    addDoc,
+    serverTimestamp,
+    query,
+    orderBy,
+    limit,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+  // FirebaseのConfig情報をここに入れてね
+  const firebaseConfig = {
+    apiKey: "AIzaSyBH83-kUYRbKxIjd1TAvcL9p18u3vM4GLY",
+    authDomain: "family-toilet-call-2e24c.firebaseapp.com",
+    projectId: "family-toilet-call-2e24c",
+    storageBucket: "family-toilet-call-2e24c.firebasestorage.app",
+    messagingSenderId: "789262636034",
+    appId: "1:789262636034:web:e770886d3f9c5be452c31b"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const button = document.getElementById("notify");
+  const status = document.getElementById("status");
+  const history = document.getElementById("history");
+  const uidDisplay = document.getElementById("uid");
+
+  let currentUser = null;
+
+  async function start() {
+    try {
+      await signInAnonymously(auth);
+    } catch (error) {
+      status.textContent = "ログインできませんでした。設定を確認してね。";
+      console.error(error);
     }
-  </script>
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+
+    currentUser = user;
+    uidDisplay.textContent = "この端末のユーザーID：" + user.uid;
+
+    try {
+      const memberRef = doc(db, "members", user.uid);
+      const memberSnap = await getDoc(memberRef);
+
+      if (!memberSnap.exists() || memberSnap.data().active !== true) {
+        status.textContent =
+          "家族登録がまだ完了していません。この端末のユーザーIDを管理者に伝えてね。";
+        button.disabled = true;
+        return;
+      }
+
+      status.textContent = "家族として接続しました！";
+      button.disabled = false;
+
+      const eventsRef = collection(db, "family", "toilet", "events");
+      const eventsQuery = query(
+        eventsRef,
+        orderBy("createdAt", "desc"),
+        limit(10)
+      );
+
+      onSnapshot(eventsQuery, (snapshot) => {
+        history.innerHTML = "";
+
+        if (snapshot.empty) {
+          history.textContent = "通知履歴はまだありません。";
+          return;
+        }
+
+        snapshot.forEach((item) => {
+          const data = item.data();
+          const entry = document.createElement("div");
+          entry.className = "event";
+          entry.textContent =
+            data.senderUid === currentUser.uid
+              ? "あなたが通知しました"
+              : "🚽 家族からトイレの通知が届きました！";
+          history.appendChild(entry);
+        });
+      }, (error) => {
+        status.textContent = "通知の読み込みに失敗しました。";
+        console.error(error);
+      });
+
+    } catch (error) {
+      status.textContent = "家族登録を確認できませんでした。";
+      console.error(error);
+    }
+  });
+
+  button.addEventListener("click", async () => {
+    if (!currentUser || button.disabled) return;
+
+    button.disabled = true;
+    status.textContent = "通知を送信中...";
+
+    try {
+      await addDoc(
+        collection(db, "family", "toilet", "events"),
+        {
+          senderUid: currentUser.uid,
+          createdAt: serverTimestamp()
+        }
+      );
+      status.textContent = "家族に通知しました！";
+    } catch (error) {
+      status.textContent = "送信できませんでした。設定を確認してね。";
+      console.error(error);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  start();
+</script>
 </body>
 </html>

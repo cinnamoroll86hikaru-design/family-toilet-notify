@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#eaf2ff">
+  <title>家族のトイレ通知</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #eaf2ff;
+      color: #29364a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 28px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 8px 30px #233b6020;
+    }
+
+    .icon {
+      font-size: 64px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 25px;
+      margin: 8px 0;
+    }
+
+    .description {
+      color: #778398;
+      font-size: 14px;
+      line-height: 1.8;
+      margin-bottom: 30px;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 18px;
+      padding: 20px;
+      background: #5489dc;
+      color: white;
+      font-size: 19px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:active {
+      opacity: 0.8;
+    }
+
+    #message {
+      margin-top: 24px;
+      padding: 14px;
+      border-radius: 14px;
+      background: #f1f5fb;
+      color: #53647d;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    footer {
+      margin-top: 28px;
+      color: #9aa5b5;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="icon">🚽</div>
+    <h1>家族のトイレ通知</h1>
+    <p class="description">
+      トイレを使いたいときに<br>
+      ボタンを押して家族にお知らせ！
+    </p>
+
+    <button onclick="notifyFamily()">
+      トイレを使いたい！
+    </button>
+
+    <div id="message">
+      通知機能はまだ準備中です。
+    </div>
+
+    <footer>
+      FAMILY TOILET NOTIFICATION
+    </footer>
+  </main>
+
+  <script>
+    function notifyFamily() {
+      document.getElementById("message").textContent =
+        "通知機能はまだ接続されていません。もう少し待ってね！";
+    }
+  </script>
+</body>
+</html>
